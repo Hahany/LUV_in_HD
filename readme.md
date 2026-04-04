@@ -1,9 +1,8 @@
 # Code and Data for **"Strong Correlation Between Local Free Volume and Stringlike Motions in a Hard-Disk Glass Former"**
 ## License
 This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
-This repository contains all code, raw data, and generated figures for the two systems studied in our manuscript#
-1. **2D Hard Disk System**
-2. **3D Metallic Glass System**
+This repository contains all code, raw data, and generated figures for the 2D Hard Disk systems studied in our manuscript
+
 
 Each system has its own dedicated subdirectory with a self-contained workflow.
 
