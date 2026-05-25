@@ -106,6 +106,9 @@ class Particles:
 
     def unwrap3(self):
         return unwrap3(self)
+    
+    def unwrap_vec(self):
+        return unwrap_vec(self)
 
     def pbc(self, noto0=True):
         return pbc(self, noto0=noto0)
@@ -178,6 +181,12 @@ class Particles:
                                    savefile=savefile, figshow=figshow,
                                    pid=pid, select=select, mode=mode, Length_of_string=Length_of_string, crt_in=crt_in,
                                    choose_middle=choose_middle, dr_ht=dr_ht)
+    
+    def showdensity_no_overlap_tail_only(self, regionradius, r_insert, rho, savefile=None, figshow=False,
+                pid=None, select=False, dr_ht=5):
+        return showdensity_no_overlap_tail_only(self, regionradius=regionradius, r_insert=r_insert, rho=rho, savefile=savefile, figshow=figshow,
+                pid=pid, select=select, dr_ht=dr_ht)    
+
     def shiftdensity(self, shifting_window, regionradius, r_insert, rho, savefile=None, figshow=False,
                     pid=None, select=False, dr_ht=5):
         return shiftdensity(self,  shifting_window=shifting_window, regionradius=regionradius, r_insert=r_insert, rho=rho,
@@ -196,4 +205,10 @@ class Particles:
         return MSD(self, fr1=fr1, interval=interval, COM=COM, frinc=frinc, realdt=realdt,
                            spf=spf)
 
+
+    def set_ax(glass, ax, x1, y1, r1, x_low, x_up, y_low, y_up, x_qt=0, y_qt=0, x_qh=0, y_qh=0):
+        return set_ax(glass, ax, x1, y1, r1, x_low, x_up, y_low, y_up, x_qt=x_qt, y_qt=y_qt, x_qh=x_qh, y_qh=y_qh)
+    
+    def plot_collections(ax, mask, CalRegion, ts0, ts1, ts, ti, title):
+        return plot_collections(ax, mask, CalRegion, ts0, ts1, ts, ti, title)
 

@@ -10,7 +10,7 @@ run_main(){
   N_THREADS=$4
   Rc=$5
   ulimit -v "$MEM_LIMIT"
-  nice -n 19 python3.11 /home/xiaochu/Public/project-LUV/apps/main_measurement/main.py "$Rc" "$N_frame" "$N_seg" "$Rho"
+  nice -n 19 python3.11 /home/xiaochu/Public/LUV_in_HD/apps/main_measurement/main.py "$Rc" "$N_frame" "$N_seg" "$Rho"
 }
 export -f run_main
 export -f run_main
@@ -18,7 +18,7 @@ export -f run_main
 
 MAX_JOBS=40
 count=0
-Nf_list=(100 500 10000)
+Nf_list=(100 500 10000)  # 原来的总帧数0.780~0.805 依次是 [1000, 1000, 10000, 10000, 100000, 100000]  当前选短一点，是应为如果全部纳入计算耗时过长，则只能选择短一些的帧数
 for j in $(seq 0 0); do
     Rho=$(echo "$j * 0.005 + 0.780" | bc -l)
     for i in $(seq 0 60); do

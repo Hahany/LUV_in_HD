@@ -8,7 +8,7 @@ from matplotlib.font_manager import FontProperties
 font_prop = FontProperties(family='Times New Roman', size=20)
 font_path = '/home/xiaochu/.fonts/times.ttf'
 fm.fontManager.addfont(font_path)
-from hd2d_src.HopTrack.core.showdensity import dr_overlap
+from hd2d_src.HopTrack.core.share.dr_overlap import dr_overlap
 #Calculate local denstity around the given circle region and particle position
 def distPBC2D(vec, Lx, Ly):
     hLx = Lx / 2

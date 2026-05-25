@@ -7,10 +7,10 @@ def show_config(frames, id_list, r, savefile):
         if i in id_list:
             ax0.plot(frames[i, 2], frames[i, 3], 'go')
 
-        circle = plt.Circle((frames[i,2], frames[i, 3]), r[int(frames[i, 0]-1)], color='k', fill=False)
-        ax0.add_artist(circle)
+        circle = plt.Circle((frames[i,2], frames[i, 3]), r[int(frames[i, 0]-1)], color='k', fill=False, lw=0.5)
+        ax0.add_patch(circle)
+    plt.axis('equal')
 
-
-    plt.savefig(f'{savefile}', dpi=90)
+    plt.savefig(f'{savefile}', dpi=900)
 
 

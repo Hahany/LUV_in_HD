@@ -72,8 +72,7 @@ def findstring(glass, HopThreshold, ConnectThreshold, microstring=True, ignoreLo
             # print(f"t2_frame= {t2_frame}, pm={pm}, {np.shape(glass.frames)} \n")
             final_pm = glass.frames[t2_frame, pm, 2:4]
             dis_matrix = ini_pn - final_pm
-            for veci in range(len(dis_matrix)):
-                dis_matrix[veci] = distPBC2D(dis_matrix[veci], glass.L[0], glass.L[1])
+            dis_matrix = distPBC2D(dis_matrix, glass.L[0], glass.L[1])
             dis_connect = np.linalg.norm(dis_matrix, axis=1)
             min_index = np.argmin(dis_connect)
             dis_b = dis_connect[min_index]
@@ -126,6 +125,7 @@ def findstring(glass, HopThreshold, ConnectThreshold, microstring=True, ignoreLo
             print(f'string particle id set is {plist}')
         for i in range(len(string)):
             if len(string[i]) == 2:
+                plist = np.array(plist)  #保证后面的判断不出故障
                 hops[int(np.where(plist == string[i][0])[0])].next = hops[int(np.where(plist == string[i][-1])[0])]
                 if not silent:
                     print(
