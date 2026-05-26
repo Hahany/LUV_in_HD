@@ -220,8 +220,8 @@ def DeltaV_vs_Rc_2D(dict, app_path, fix_rho=False, xa=0, xb=100):
     ax.set_ylabel(r'$\Delta \bar{{V}}_\mathrm{AT}/v$', fontsize=20)
     ax.grid(False)
     ax.legend(loc='lower right', fontsize=20)
-    ax.set_ylim([0.18, 1.1])
-    ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_ylim([0.18, 1.4])
+    ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4])
     ax.set_xlim([1, 19])
     fig.tight_layout()
     ax.minorticks_on()
@@ -252,13 +252,12 @@ def rho_vs_Rc_(file_path, fix_rho=False, xa=0, xb=100):
 
 if __name__ == '__main__':
     app_path = '/home/xiaochu/Public/LUV_in_HD/apps/LUV_rho_R'
-    dict = {'0780': '/home/xiaochu/Public/LUV_in_HD/data/output/0780/no_overlap/rh_0.8_rs_0.6_Lst_0_Len2.00_nseg_100',
-            # '0780': '/home/xiaochu/Public/LUV_in_HD/data/output/0780/DHT_ge_2.00_Nf_100/rh_0.8_rs_0.6_Lst_0_Len2.00_nseg_100',
-            '0785': '/home/xiaochu/Public/LUV_in_HD/data/output/0785/DHT_ge_2.00_Nf_100/rh_0.8_rs_0.6_Lst_0_Len2.00_nseg_100',
-            '0790': '/home/xiaochu/Public/LUV_in_HD/data/output/0790/DHT_ge_2.00_Nf_100/rh_0.8_rs_0.6_Lst_0_Len2.00_nseg_100',
-            # '0795': '/home/xiaochu/Public/LUV_in_HD/data/output/0795/DHT_ge_2.00_Nf_100/rh_0.8_rs_0.6_Lst_0_Len2.00_nseg_100',
-            '0800': '/home/xiaochu/Public/LUV_in_HD/data/output/0800/DHT_ge_2.00_Nf_1000/rh_0.8_rs_0.6_Lst_0_Len2.00_nseg_1000',
-            '0805': '/home/xiaochu/Public/LUV_in_HD/data/output/0805/AVE_dt_100000_rs_0.6_rh_0.8_Lst_0_Len2.00_nseg_1000'}
+    dict = {'0780': '/home/xiaochu/Public/LUV_in_HD/data/output/0780/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_100',
+            '0785': '/home/xiaochu/Public/LUV_in_HD/data/output/0785/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_100',
+            # '0790': '/home/xiaochu/Public/LUV_in_HD/data/output/0790/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_100',
+            '0795': '/home/xiaochu/Public/LUV_in_HD/data/output/0795/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_1000',
+            '0800': '/home/xiaochu/Public/LUV_in_HD/data/output/0800/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_1000',
+            '0805': '/home/xiaochu/Public/LUV_in_HD/data/output/0805/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_1000'}
     for key, value in dict.items():
         data_path = value
         deltaV = get_deltaV(data_path, fix_rho=False, prefix='Rc_')

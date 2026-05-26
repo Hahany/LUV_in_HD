@@ -11,6 +11,7 @@ import os
 import matplotlib as mpl
 from matplotlib.ticker import MultipleLocator
 from hd2d_src.HopTrack.utils.path import get_sub_project_root
+import re
 mpl.rcParams['text.usetex'] = True
 plt.rcParams.update({
     'text.usetex': True,
@@ -743,7 +744,7 @@ def plot_5sets(rc, rs, rho, save_LD, data_path, scale=True, show=False):
         plt.show()
     return Rc, DeltaV, std2
 
-def plot_3sets(rc, rs, rho, save_LD, data_path, scale=True, show=False, bins=[50, 20, 10]):
+def plot_3sets(rc, rs, rho, nseg, save_LD, data_path, scale=True, show=False, bins=[50, 20, 10]):
     ## plot one best sample to show the local density or unoccupied volume distribution
     Rc = rc
     save_fig = f"Rs_{rs:.02f}"
@@ -769,10 +770,7 @@ def plot_3sets(rc, rs, rho, save_LD, data_path, scale=True, show=False, bins=[50
 
 
 
-    LEN = save_LD.split("Len")[1]
-    LEN = LEN.split("_")[0]
-    LEN = float(LEN)
-    LEN = int(LEN)
+    LEN = int(float(re.search(r'Len([\d.]+)', save_LD).group(1)))
     shiftwidth = 2.0
     if local_density.ndim == 1:
         print('Only one line in local_density!!')
@@ -883,7 +881,7 @@ def plot_3sets(rc, rs, rho, save_LD, data_path, scale=True, show=False, bins=[50
         std_system.append(std[1])
         current_path = os.path.abspath(__file__)
         save_fig = os.path.dirname(current_path)
-        savefile = f'{save_fig}/Fig2a_Dist_Rc_{rc:.02f}.png'
+        savefile = f'{save_fig}/Fig2a_Dist_Rc_{rc:.02f}_rho_{rho}_nseg_{nseg}.png'
         fig.savefig(savefile, dpi=300)
         print(f'{savefile}')
         if show:
@@ -1275,7 +1273,7 @@ def plot_shift(rc, rh, rs, rho, save_LD, Ls, scale=True):
     print(f'{save_path}/DISTRI_Rc_{rc:.02f}_impact_tool_{flag}_{save_fig}_exlude_string_LONG.png')
     plt.show()
 
-def main(mode, rho, data_path):
+def main(mode, rho, nseg, data_path):
     case = ['MultiTasks', 'SingleTask', 'DV-Rc', '5sets', 'shift']
     if case[mode]=='MultiTasks':
         pool = multiprocessing.Pool(processes=80)
@@ -1301,7 +1299,7 @@ def main(mode, rho, data_path):
         #             scale=True, bins=[50, 20, 15, 15])
 
         # for D_rh=12\sigma
-            plot_3sets(rc=Rc, rs=0.6, rho=rho,
+            plot_3sets(rc=Rc, rs=0.6, rho=rho, nseg=nseg,
                     save_LD=data_path,
                     data_path=f'Rc_{Rc:.02f}',
                     scale=True, bins=[50, 20, 10])
@@ -1357,5 +1355,5 @@ def main(mode, rho, data_path):
                 Ls=0, scale=True)
 
 if __name__ == '__main__':
-    data_path = str(get_sub_project_root() / "apps/LUV_distribution/DrHT_Len2")
-    main(1, 0.805, data_path=data_path)
+    data_path = str(get_sub_project_root() / "apps/LUV_distribution/DrHT_Len2/nooverlap")
+    main(1, 0.780, '1000ovl', data_path=data_path)

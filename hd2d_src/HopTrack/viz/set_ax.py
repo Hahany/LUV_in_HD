@@ -1,5 +1,5 @@
 import hd2d_src.HopTrack.core.share.circle as circle
-def set_ax(glass, ax, x1, y1, r1, x_low, x_up, y_low, y_up, x_qt=0, y_qt=0, x_qh=0, y_qh=0):
+def set_ax(ax, x1, y1, r1, x_low, x_up, y_low, y_up, x_qt=0, y_qt=0, x_qh=0, y_qh=0):
     #ax, (x1, y1, r1), (x_low, x_up, y_low, y_up), (x_qt, y_qt, x_qh, y_qh)
     a, b = circle(x1, y1, r1)
     ax.set_xlim(x_low, x_up)

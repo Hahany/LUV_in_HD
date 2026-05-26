@@ -8,15 +8,15 @@ from hd2d_src.HopTrack.core import *
 from hd2d_src.HopTrack.core.Local_Density_Calculator import Local_Density_Calculator
 
 
+
+# mode = 0  calculate the local density at string ends
+# mode = 1 calculate the local density of the middle/other (without ends) particles in the string
+# mode = 2 calculate minial local density of the loop 
+# crt_in = False  whether set Rc as criteria for the internal particles in the string
+
 def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False,
                 pid=None, select=False, mode=0, Length_of_string=3, crt_in=False, choose_middle=False, dr_ht=5):
-    # mode = 0  calculate the local density at string ends
-    # mode = 1 calculate the local density of the middle/other (without ends) particles in the string
-    # mode = 2 calculate minial local density of the loop 
-    # crt_in = False  whether set Rc as criteria for the internal particles in the string
 
-
-    # get particle id in string
     density_tail_ini = []
     density_head_ini = []
     density_tail_final = []
@@ -25,8 +25,8 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
     time_select = []
     ld_list = []
     ts, _, _ = np.shape(glass.frames)
-    Deduplicate(glass)
-    deepDeduplicate(glass)
+    # Deduplicate 和 deepDeduplicate 已在 prepare_string_obj 里执行，此处删除
+
     for ti, stringparticles in enumerate(tqdm(glass.connected_components, desc="Processing Components")):
         if select:
             if pid != stringparticles[0]:
@@ -39,18 +39,16 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
             sp = [stringparticles[0], stringparticles[-1]]
             time_ini = glass.starend_of_string[ti][0]
             time_final = glass.starend_of_string[ti][1]
-            # print(f'time initial = {time_ini}, time final = {time_final}')
-            # get partile and quasivoid position at the tail
+
             id_tail = int(sp[0])
             id_head = int(sp[1])
             x_partical_tail = glass.frames[time_ini, id_tail, 2]
             y_particle_tail = glass.frames[time_ini, id_tail, 3]
             x_quasivoid_tail = glass.frames[time_final, id_tail, 2]
             y_quasivoid_tail = glass.frames[time_final, id_tail, 3]
-            x_quasivoid_tail = particle_unwrap(x_partical_tail, x_quasivoid_tail, glass.L[0]) # unwrap when particle hops to the otherside
+            x_quasivoid_tail = particle_unwrap(x_partical_tail, x_quasivoid_tail, glass.L[0])
             y_quasivoid_tail = particle_unwrap(y_particle_tail, y_quasivoid_tail, glass.L[1])
 
-            # get partile and quasivoid position at the head
             x_particle_head = glass.frames[time_final, id_head, 2]
             y_particle_head = glass.frames[time_final, id_head, 3]
             x_quasivoid_head = glass.frames[time_ini, id_head, 2]
@@ -61,95 +59,71 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
             dist_headtail_vec = distPBC2D([x_particle_head-x_partical_tail, y_particle_head-y_particle_tail],
                                           glass.L[0], glass.L[1])
             dist_headtail = np.linalg.norm(dist_headtail_vec)
+
             if dist_headtail > dr_ht:
-                CalRegion_tail_ini, x_low_ti, x_up_ti, y_low_ti, y_up_ti = select_region_pbc(glass, x_partical_tail, y_particle_tail, regionradius)
-                CalRegion_tail_final, x_low_tf, x_up_tf, y_low_tf, y_up_tf = select_region_pbc(glass, x_quasivoid_tail, y_quasivoid_tail, regionradius)
-                CalRegion_head_final, x_low_hf, x_up_hf, y_low_hf, y_up_hf = select_region_pbc(glass, x_particle_head, y_particle_head, regionradius)
-                CalRegion_head_ini, x_low_hi, x_up_hi, y_low_hi, y_up_hi = select_region_pbc(glass, x_quasivoid_head, y_quasivoid_head, regionradius)
-
-
-
-
-                # plot local density vs time
-                if figshow:
-                    ax4.plot(ld_ti, c='r', label='Initial tail density', marker='o')
-                    ax4.plot(ld_tf, linestyle='--', c='b', label='Final tail density', marker='x')
-                    ax4.plot(ld_hi, c='r', label='Initial head density', marker='s')
-                    ax4.plot(ld_hf, linestyle='--', c='b', label='Final head density', marker='*')
+                frame_ti, x_low_ti, x_up_ti, y_low_ti, y_up_ti = select_region_pbc(
+                    glass, x_partical_tail, y_particle_tail, regionradius, time_ini)
+                frame_tf, x_low_tf, x_up_tf, y_low_tf, y_up_tf = select_region_pbc(
+                    glass, x_quasivoid_tail, y_quasivoid_tail, regionradius, time_final)
+                frame_hf, x_low_hf, x_up_hf, y_low_hf, y_up_hf = select_region_pbc(
+                    glass, x_particle_head, y_particle_head, regionradius, time_final)
+                frame_hi, x_low_hi, x_up_hi, y_low_hi, y_up_hi = select_region_pbc(
+                    glass, x_quasivoid_head, y_quasivoid_head, regionradius, time_ini)
 
                 if r_insert == 0:
-                    ld_ti = cal_density_on_time(glass, CalRegion_tail_ini, x_low_ti, x_up_ti, y_low_ti, y_up_ti,
-                                                x_partical_tail, y_particle_tail, regionradius, time_ini)
-                    ld_tf = cal_density_on_time(glass, CalRegion_tail_final, x_low_tf, x_up_tf, y_low_tf,
-                                                y_up_tf, x_quasivoid_tail, y_quasivoid_tail, regionradius, time_final)
-                    ld_hf = cal_density_on_time(glass, CalRegion_head_final, x_low_hf, x_up_hf, y_low_hf, y_up_hf,
-                                                x_particle_head, y_particle_head, regionradius, time_final)
-                    ld_hi = cal_density_on_time(glass, CalRegion_head_ini, x_low_hi, x_up_hi, y_low_hi, y_up_hi,
-                                                x_quasivoid_head, y_quasivoid_head, regionradius, time_ini)
-                    t = time_ini
-
-                    mask_ti = ((CalRegion_tail_ini[t, :, 2] > x_low_ti) & (CalRegion_tail_ini[t, :, 2] < x_up_ti) &
-                               (CalRegion_tail_ini[t, :, 3] > y_low_ti) & (CalRegion_tail_ini[t, :,
-                                                                           3] < y_up_ti))  # select particles in the square region to speed up
-                    mask_tf = ((CalRegion_tail_final[t, :, 2] > x_low_tf) & (
-                                CalRegion_tail_final[t, :, 2] < x_up_tf)
-                               & (CalRegion_tail_final[t, :, 3] > y_low_tf) & (
-                                           CalRegion_tail_final[t, :, 3] < y_up_tf))
-                    mask_hf = ((CalRegion_head_final[t, :, 2] > x_low_hf) & (
-                                CalRegion_head_final[t, :, 2] < x_up_hf) &
-                               (CalRegion_head_final[t, :, 3] > y_low_hf) & (
-                                           CalRegion_head_final[t, :, 3] < y_up_hf))
-                    mask_hi = ((CalRegion_head_ini[t, :, 2] > x_low_hi) & (CalRegion_head_ini[t, :, 2] < x_up_hi) &
-                               (CalRegion_head_ini[t, :, 3] > y_low_hi) & (CalRegion_head_ini[t, :, 3] < y_up_hi))
+                    ld_ti = cal_density_on_time(glass, frame_ti, x_low_ti, x_up_ti, y_low_ti, y_up_ti,
+                                                x_partical_tail, y_particle_tail, regionradius)
+                    ld_tf = cal_density_on_time(glass, frame_tf, x_low_tf, x_up_tf, y_low_tf, y_up_tf,
+                                                x_quasivoid_tail, y_quasivoid_tail, regionradius)
+                    ld_hf = cal_density_on_time(glass, frame_hf, x_low_hf, x_up_hf, y_low_hf, y_up_hf,
+                                                x_particle_head, y_particle_head, regionradius)
+                    ld_hi = cal_density_on_time(glass, frame_hi, x_low_hi, x_up_hi, y_low_hi, y_up_hi,
+                                                x_quasivoid_head, y_quasivoid_head, regionradius)
 
                     density_tail_ini.append(ld_ti)
                     density_tail_final.append(ld_tf)
                     density_head_final.append(ld_hf)
                     density_head_ini.append(ld_hi)
                     time_select = [time_ini, time_final]
+
                     if figshow:
+                        CalRegion_ti = select_region_pbc_full(glass, x_partical_tail, y_particle_tail, regionradius)
+                        CalRegion_tf = select_region_pbc_full(glass, x_quasivoid_tail, y_quasivoid_tail, regionradius)
+                        CalRegion_hf = select_region_pbc_full(glass, x_particle_head, y_particle_head, regionradius)
+                        CalRegion_hi = select_region_pbc_full(glass, x_quasivoid_head, y_quasivoid_head, regionradius)
+
+                        mask_ti = ((frame_ti[:, 2] > x_low_ti) & (frame_ti[:, 2] < x_up_ti) &
+                                   (frame_ti[:, 3] > y_low_ti) & (frame_ti[:, 3] < y_up_ti))
+                        mask_tf = ((frame_tf[:, 2] > x_low_tf) & (frame_tf[:, 2] < x_up_tf) &
+                                   (frame_tf[:, 3] > y_low_tf) & (frame_tf[:, 3] < y_up_tf))
+                        mask_hf = ((frame_hf[:, 2] > x_low_hf) & (frame_hf[:, 2] < x_up_hf) &
+                                   (frame_hf[:, 3] > y_low_hf) & (frame_hf[:, 3] < y_up_hf))
+                        mask_hi = ((frame_hi[:, 2] > x_low_hi) & (frame_hi[:, 2] < x_up_hi) &
+                                   (frame_hi[:, 3] > y_low_hi) & (frame_hi[:, 3] < y_up_hi))
 
                         entire_density_initial = Local_Density_Calculator(glass, regionradius, [time_ini])
                         entire_density_final = Local_Density_Calculator(glass, regionradius, [time_final])
                         norm = mcolors.Normalize(vmin=rho - 0.1, vmax=rho + 0.1)
                         show_heterogeneity(ax0[0, 0], glass, entire_density_initial, norm, time_ini,
-                                               [x_low_ti, x_up_ti, y_low_ti, y_up_ti])
+                                           [x_low_ti, x_up_ti, y_low_ti, y_up_ti])
                         show_heterogeneity(ax0[1, 0], glass, entire_density_initial, norm, time_ini,
-                                               [x_low_hi, x_up_hi, y_low_hi, y_up_hi])
+                                           [x_low_hi, x_up_hi, y_low_hi, y_up_hi])
                         show_heterogeneity(ax0[0, 1], glass, entire_density_final, norm, time_final,
-                                               [x_low_tf, x_up_tf, y_low_tf, y_up_tf])
+                                           [x_low_tf, x_up_tf, y_low_tf, y_up_tf])
                         show_heterogeneity(ax0[1, 1], glass, entire_density_final, norm, time_final,
-                                               [x_low_hf, x_up_hf, y_low_hf, y_up_hf])
-
-                        # ax, x1, y1, regionradius, x_low, x_up, y_low, y_up, x_qt, y_qt, x_qh, y_qh
-                        glass.set_ax(ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
-                                     y_low_ti,
-                                     y_up_ti, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head,
-                                     y_quasivoid_head)
-                        glass.set_ax(ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
-                                     y_low_tf,
-                                     y_up_tf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head,
-                                     y_quasivoid_head)
-                        glass.set_ax(ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
-                                     y_low_hi,
-                                     y_up_hi, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head,
-                                     y_quasivoid_head)
-                        glass.set_ax(ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
-                                     y_low_hf,
-                                     y_up_hf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head,
-                                     y_quasivoid_head)
-
-                        # plot string
-                        glass.plot_collections(ax0[0, 0], mask_ti, CalRegion_tail_ini, time_ini, time_final, ts, ti,
-                                               'initial tail')
-                        glass.plot_collections(ax0[0, 1], mask_tf, CalRegion_tail_final, time_ini, time_final, ts,
-                                               ti,
-                                               'final tail')
-                        glass.plot_collections(ax0[1, 0], mask_hi, CalRegion_head_ini, time_ini, time_final, ts, ti,
-                                               'initial head')
-                        glass.plot_collections(ax0[1, 1], mask_hf, CalRegion_head_final, time_ini, time_final, ts,
-                                               ti,
-                                               'final head')
+                                           [x_low_hf, x_up_hf, y_low_hf, y_up_hf])
+                        set_ax(glass, ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
+                               y_low_ti, y_up_ti, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                        set_ax(glass, ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
+                               y_low_tf, y_up_tf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                        set_ax(glass, ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
+                               y_low_hi, y_up_hi, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                        set_ax(glass, ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
+                               y_low_hf, y_up_hf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                        plot_collections(glass, ax0[0, 0], mask_ti, CalRegion_ti, time_ini, time_final, ts, ti, 'initial tail')
+                        plot_collections(glass, ax0[0, 1], mask_tf, CalRegion_tf, time_ini, time_final, ts, ti, 'final tail')
+                        plot_collections(glass, ax0[1, 0], mask_hi, CalRegion_hi, time_ini, time_final, ts, ti, 'initial head')
+                        plot_collections(glass, ax0[1, 1], mask_hf, CalRegion_hf, time_ini, time_final, ts, ti, 'final head')
                         ax4.vlines([time_ini, time_final], 0.75, 0.85, color=['r', 'b'], linestyles='--')
                         ax4.set_xlabel('Time')
                         ax4.set_ylabel('Area density in black circle region')
@@ -165,68 +139,62 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
                             plt.show()
 
                 else:
-                    ld_ti, mindr_ti = cal_density_vs_time_with_ri(glass, CalRegion_tail_ini, x_low_ti, x_up_ti, y_low_ti,
-                                                          y_up_ti,
-                                                          x_partical_tail, y_particle_tail, regionradius)
-                    ld_tf, mindr_tf = cal_density_vs_time_with_ri(glass, CalRegion_tail_final, x_low_tf, x_up_tf, y_low_tf,
-                                                          y_up_tf, x_quasivoid_tail, y_quasivoid_tail, regionradius)
-                    ld_hf, mindr_hf = cal_density_vs_time_with_ri(glass, CalRegion_head_final, x_low_hf, x_up_hf, y_low_hf,
-                                                          y_up_hf,
-                                                          x_particle_head, y_particle_head, regionradius)
-                    ld_hi, mindr_hi = cal_density_vs_time_with_ri(glass, CalRegion_head_ini, x_low_hi, x_up_hi, y_low_hi,
-                                                          y_up_hi,
-                                                          x_quasivoid_head, y_quasivoid_head, regionradius)
+                    ld_ti, mindr_ti = cal_density_on_time_with_ri(glass, frame_ti, x_low_ti, x_up_ti,
+                                                                   y_low_ti, y_up_ti, x_partical_tail,
+                                                                   y_particle_tail, regionradius)
+                    ld_tf, mindr_tf = cal_density_on_time_with_ri(glass, frame_tf, x_low_tf, x_up_tf,
+                                                                   y_low_tf, y_up_tf, x_quasivoid_tail,
+                                                                   y_quasivoid_tail, regionradius)
+                    ld_hf, mindr_hf = cal_density_on_time_with_ri(glass, frame_hf, x_low_hf, x_up_hf,
+                                                                   y_low_hf, y_up_hf, x_particle_head,
+                                                                   y_particle_head, regionradius)
+                    ld_hi, mindr_hi = cal_density_on_time_with_ri(glass, frame_hi, x_low_hi, x_up_hi,
+                                                                   y_low_hi, y_up_hi, x_quasivoid_head,
+                                                                   y_quasivoid_head, regionradius)
 
-
-
-                    if mindr_tf[time_ini] > r_insert and mindr_hi[time_final] > r_insert:
-                        t = time_ini
-                        mask_ti = ((CalRegion_tail_ini[t, :, 2] > x_low_ti) & (CalRegion_tail_ini[t, :, 2] < x_up_ti) &
-                                (CalRegion_tail_ini[t, :, 3] > y_low_ti) & (CalRegion_tail_ini[t, :, 3] < y_up_ti)) # select particles in the square region to speed up
-                        mask_tf = ((CalRegion_tail_final[t, :, 2] > x_low_tf) & (CalRegion_tail_final[t, :, 2] < x_up_tf)
-                                    & (CalRegion_tail_final[t,:, 3] > y_low_tf) & (CalRegion_tail_final[t,:, 3] < y_up_tf))
-                        mask_hf = ((CalRegion_head_final[t, :, 2] > x_low_hf) & (CalRegion_head_final[t, :, 2] < x_up_hf) &
-                                   (CalRegion_head_final[t, :, 3] > y_low_hf) & (CalRegion_head_final[t, :, 3] < y_up_hf))
-                        mask_hi = ((CalRegion_head_ini[t, :, 2] > x_low_hi) & (CalRegion_head_ini[t, :, 2] < x_up_hi) &
-                                   (CalRegion_head_ini[t, :, 3] > y_low_hi) & (CalRegion_head_ini[t, :, 3] < y_up_hi))
-
-                        density_tail_ini.append(ld_ti[time_ini])
-                        density_tail_final.append(ld_tf[time_final])
-                        density_head_final.append(ld_hf[time_final])
-                        density_head_ini.append(ld_hi[time_ini])
+                    if mindr_tf > r_insert and mindr_hi > r_insert:
+                        density_tail_ini.append(ld_ti)
+                        density_tail_final.append(ld_tf)
+                        density_head_final.append(ld_hf)
+                        density_head_ini.append(ld_hi)
                         time_select = [time_ini, time_final]
                         if figshow:
+                            CalRegion_ti = select_region_pbc_full(glass, x_partical_tail, y_particle_tail, regionradius)
+                            CalRegion_tf = select_region_pbc_full(glass, x_quasivoid_tail, y_quasivoid_tail, regionradius)
+                            CalRegion_hf = select_region_pbc_full(glass, x_particle_head, y_particle_head, regionradius)
+                            CalRegion_hi = select_region_pbc_full(glass, x_quasivoid_head, y_quasivoid_head, regionradius)
+
+                            mask_ti = ((frame_ti[:, 2] > x_low_ti) & (frame_ti[:, 2] < x_up_ti) &
+                                       (frame_ti[:, 3] > y_low_ti) & (frame_ti[:, 3] < y_up_ti))
+                            mask_tf = ((frame_tf[:, 2] > x_low_tf) & (frame_tf[:, 2] < x_up_tf) &
+                                       (frame_tf[:, 3] > y_low_tf) & (frame_tf[:, 3] < y_up_tf))
+                            mask_hf = ((frame_hf[:, 2] > x_low_hf) & (frame_hf[:, 2] < x_up_hf) &
+                                       (frame_hf[:, 3] > y_low_hf) & (frame_hf[:, 3] < y_up_hf))
+                            mask_hi = ((frame_hi[:, 2] > x_low_hi) & (frame_hi[:, 2] < x_up_hi) &
+                                       (frame_hi[:, 3] > y_low_hi) & (frame_hi[:, 3] < y_up_hi))
                             entire_density_initial = Local_Density_Calculator(glass, regionradius, [time_ini])
                             entire_density_final = Local_Density_Calculator(glass, regionradius, [time_final])
                             norm = mcolors.Normalize(vmin=rho-0.1, vmax=rho+0.1)
                             show_heterogeneity(ax0[0, 0], glass, entire_density_initial, norm, time_ini,
-                                                   [x_low_ti, x_up_ti, y_low_ti, y_up_ti])
+                                               [x_low_ti, x_up_ti, y_low_ti, y_up_ti])
                             show_heterogeneity(ax0[1, 0], glass, entire_density_initial, norm, time_ini,
-                                                   [x_low_hi, x_up_hi, y_low_hi, y_up_hi])
+                                               [x_low_hi, x_up_hi, y_low_hi, y_up_hi])
                             show_heterogeneity(ax0[0, 1], glass, entire_density_final, norm, time_final,
-                                                   [x_low_tf, x_up_tf, y_low_tf, y_up_tf])
+                                               [x_low_tf, x_up_tf, y_low_tf, y_up_tf])
                             show_heterogeneity(ax0[1, 1], glass, entire_density_final, norm, time_final,
-                                                   [x_low_hf, x_up_hf, y_low_hf, y_up_hf])
-
-
-                            #ax, x1, y1, regionradius, x_low, x_up, y_low, y_up, x_qt, y_qt, x_qh, y_qh
-                            glass.set_ax(ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti, y_low_ti,
-                                        y_up_ti, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.set_ax(ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf, y_low_tf,
-                                        y_up_tf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.set_ax(ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi, y_low_hi,
-                                        y_up_hi, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.set_ax(ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf, y_low_hf,
-                                        y_up_hf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-
-                            # plot string
-                            glass.plot_collections(ax0[0, 0], mask_ti, CalRegion_tail_ini, time_ini, time_final, ts, ti, 'initial tail')
-                            glass.plot_collections(ax0[0, 1], mask_tf, CalRegion_tail_final, time_ini, time_final, ts, ti,
-                                                  'final tail')
-                            glass.plot_collections(ax0[1, 0], mask_hi, CalRegion_head_ini, time_ini, time_final, ts, ti,
-                                                  'initial head')
-                            glass.plot_collections(ax0[1, 1], mask_hf, CalRegion_head_final, time_ini, time_final, ts, ti,
-                                                  'final head')
+                                               [x_low_hf, x_up_hf, y_low_hf, y_up_hf])
+                            set_ax(glass, ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
+                                   y_low_ti, y_up_ti, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                            set_ax(glass, ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
+                                   y_low_tf, y_up_tf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                            set_ax(glass, ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
+                                   y_low_hi, y_up_hi, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                            set_ax(glass, ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
+                                   y_low_hf, y_up_hf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
+                            plot_collections(glass, ax0[0, 0], mask_ti, CalRegion_ti, time_ini, time_final, ts, ti, 'initial tail')
+                            plot_collections(glass, ax0[0, 1], mask_tf, CalRegion_tf, time_ini, time_final, ts, ti, 'final tail')
+                            plot_collections(glass, ax0[1, 0], mask_hi, CalRegion_hi, time_ini, time_final, ts, ti, 'initial head')
+                            plot_collections(glass, ax0[1, 1], mask_hf, CalRegion_hf, time_ini, time_final, ts, ti, 'final head')
                             ax4.vlines([time_ini, time_final], 0.75, 0.85, color=['r', 'b'], linestyles='--')
                             ax4.set_xlabel('Time')
                             ax4.set_ylabel('Area density in black circle region')
@@ -240,21 +208,15 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
                                 plt.close(fig4)
                             else:
                                 plt.show()
-        elif mode==1:
-            # print(f'mode={mode}, calculate the local density of partilces in string')
+
+        elif mode == 1:
             sp = [stringparticles[0], stringparticles[-1]]
             time_ini = glass.starend_of_string[ti][0]
             time_final = glass.starend_of_string[ti][1]
-            # print(f'time initial = {time_ini}, time final = {time_final}, mode=1')
-            # if time_ini == 726:
-            #     print(f'time initial = {time_ini}, time final = {time_final}, mode=1')
-            # get partile and quasivoid position at the tail
             id_tail = int(sp[0])
             id_head = int(sp[1])
             x_partical_tail = glass.frames[time_ini, id_tail, 2]
             y_particle_tail = glass.frames[time_ini, id_tail, 3]
-
-            # get partile and quasivoid position at the head
             x_particle_head = glass.frames[time_final, id_head, 2]
             y_particle_head = glass.frames[time_final, id_head, 3]
             dist_headtail_vec = distPBC2D([x_particle_head-x_partical_tail, y_particle_head-y_particle_tail],
@@ -263,21 +225,15 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
             if dist_headtail > dr_ht:
                 if glass.stringlength[ti] >= Length_of_string:
                     sp1 = stringparticles[1:-1]
-                    time_ini = glass.starend_of_string[ti][0]
-                    time_final = glass.starend_of_string[ti][1]
                     for index_sti, sti in enumerate(glass.starend_of_string[ti]):
-                        if crt_in:  # the distance between the internal particle and string tail and head is lager than Rc
+                        if crt_in:
                             new_sp = []
                             for particle_in_string in sp1:
-                                dregionradius = glass.frames[sti, particle_in_string, 2:4] - glass.frames[sti,
-                                                                                       stringparticles[0], 2:4]
-                                dr2 = glass.frames[sti, particle_in_string, 2:4] - glass.frames[sti,
-                                                                                 stringparticles[-1], 2:4]
+                                dregionradius = glass.frames[sti, particle_in_string, 2:4] - glass.frames[sti, stringparticles[0], 2:4]
+                                dr2 = glass.frames[sti, particle_in_string, 2:4] - glass.frames[sti, stringparticles[-1], 2:4]
                                 dregionradius_pbc = distPBC2D(dregionradius, glass.L[0], glass.L[1])
                                 dr2_pbc = distPBC2D(dr2, glass.L[0], glass.L[1])
-                                dregionradius_norm = np.linalg.norm(dregionradius_pbc)
-                                dr2_norm = np.linalg.norm(dr2_pbc)
-                                if (dregionradius_norm >= regionradius) & (dr2_norm >= regionradius):
+                                if (np.linalg.norm(dregionradius_pbc) >= regionradius) & (np.linalg.norm(dr2_pbc) >= regionradius):
                                     new_sp.append(particle_in_string)
                             sp = new_sp
                         if choose_middle:
@@ -289,27 +245,27 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
                         for particle_in_string in sp:
                             x_particle_in_string = glass.frames[sti, particle_in_string, 2]
                             y_particle_in_string = glass.frames[sti, particle_in_string, 3]
-                            CalRegion_in_string, x_low, x_up, y_low, y_up = select_region_pbc(glass, x_particle_in_string, y_particle_in_string, regionradius)
-                            ld_particle_in_string = cal_density_on_time(glass, CalRegion_in_string, x_low, x_up, y_low, y_up,
-                                                                        x_particle_in_string, y_particle_in_string, regionradius, sti)
+                            frame_in, x_low, x_up, y_low, y_up = select_region_pbc(
+                                glass, x_particle_in_string, y_particle_in_string, regionradius, sti)
+                            ld_particle_in_string = cal_density_on_time(glass, frame_in, x_low, x_up, y_low, y_up,
+                                                                        x_particle_in_string, y_particle_in_string, regionradius)
                             ld_in_string.append(ld_particle_in_string)
                             if figshow:
-                                mask = ((CalRegion_in_string[sti, :, 2] > x_low) & (
-                                            CalRegion_in_string[sti, :, 2] < x_up)
-                                        & (CalRegion_in_string[sti, :, 3] > y_low) & (
-                                                    CalRegion_in_string[sti, :, 3] < y_up))
-                                mask2 = np.isin(CalRegion_in_string[0, :, 0] - 1, stringparticles)
+                                mask = ((frame_in[:, 2] > x_low) & (frame_in[:, 2] < x_up) &
+                                        (frame_in[:, 3] > y_low) & (frame_in[:, 3] < y_up))
+                                mask2 = np.isin(frame_in[:, 0] - 1, stringparticles)
                                 mask = mask & mask2
-                                ld_particle_in_string=cal_density_vs_time(glass, CalRegion_in_string, x_low, x_up, y_low, y_up,
-                                                                        x_particle_in_string, y_particle_in_string, regionradius)
+                                CalRegion_in = select_region_pbc_full(glass, x_particle_in_string, y_particle_in_string, regionradius)
+                                ld_particle_in_string = cal_density_vs_time(glass, CalRegion_in, x_low, x_up, y_low, y_up,
+                                                                            x_particle_in_string, y_particle_in_string, regionradius)
                                 fig4, ax4 = plt.subplots()
                                 fig0, ax0 = plt.subplots()
                                 ax4.plot(ld_particle_in_string, c='k', label=f'Local density of particle {particle_in_string} in string at time {sti}', marker='^')
                                 entire_density = Local_Density_Calculator(glass, regionradius, [sti])
                                 norm = mcolors.Normalize(vmin=rho - 0.1, vmax=rho + 0.1)
                                 show_heterogeneity(ax0, glass, entire_density, norm, sti, [x_low, x_up, y_low, y_up])
-                                glass.set_ax(ax0, x_particle_in_string, y_particle_in_string, regionradius, x_low, x_up, y_low, y_up)
-                                glass.plot_collections(ax0, mask, CalRegion_in_string, time_ini, time_final, ts, ti, 'In string')
+                                set_ax(glass, ax0, x_particle_in_string, y_particle_in_string, regionradius, x_low, x_up, y_low, y_up)
+                                plot_collections(glass, ax0, mask, CalRegion_in, time_ini, time_final, ts, ti, 'In string')
                                 ax4.vlines([time_ini, time_final], 0.75, 0.85, color=['r', 'b'], linestyles='--')
                                 ax4.set_xlabel('Time')
                                 ax4.set_ylabel('Area density in black circle region')
@@ -323,39 +279,31 @@ def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False
                                     plt.close(fig4)
                                 else:
                                     plt.show()
-        elif mode==2:
-            # for loop
-            ld_in_string = []  # initiate the local density list
+
+        elif mode == 2:
+            ld_in_string = []
             for sti_index, sti in enumerate(glass.starend_of_string[ti]):
-                # print(glass.frames.shape)
                 for particle_in_string in stringparticles:
                     x_particle_in_string = glass.frames[sti, particle_in_string, 2]
                     y_particle_in_string = glass.frames[sti, particle_in_string, 3]
-                    CalRegion_in_string, x_low, x_up, y_low, y_up = select_region_pbc(glass, x_particle_in_string,
-                                                                                      y_particle_in_string, regionradius)
-                    ld_particle_in_string = cal_density_on_time(glass, CalRegion_in_string, x_low, x_up, y_low, y_up,
-                                                                x_particle_in_string, y_particle_in_string, regionradius,
-                                                                sti)
-
+                    frame_in, x_low, x_up, y_low, y_up = select_region_pbc(
+                        glass, x_particle_in_string, y_particle_in_string, regionradius, sti)
+                    ld_particle_in_string = cal_density_on_time(glass, frame_in, x_low, x_up, y_low, y_up,
+                                                                x_particle_in_string, y_particle_in_string, regionradius)
                     ld_in_string.append(ld_particle_in_string)
             min_index = np.argmin(ld_in_string)
-            plist = stringparticles*2
+            plist = stringparticles * 2
             pid = plist[min_index]
             print('min_index:', np.mod(min_index, len(stringparticles)))
             print(np.shape(ld_in_string))
-            # show_config(CalRegion_in_string[sti, :, :], [pid], glass.radii,
-            #             f'/home/xiaochu/Public/project-LUV/data/output/0805/AVE_loop_dt_100000_rs_0.6_rh_0.8_Lst_0_Len1.00_nseg_1000/dt100000_Rc_6.00/{ti}.png')
             ld_list.append(np.min(ld_in_string))
 
-
-    if mode==0:
+    if mode == 0:
         return density_tail_ini, density_tail_final, density_head_ini, density_head_final, time_select
-    elif mode==1:
+    elif mode == 1:
         return ld_in_string
-    elif mode==2:
+    elif mode == 2:
         return ld_list
-
-
 
 def showdensity_no_overlap(glass, regionradius, r_insert, rho, savefile=None, figshow=False,
                 pid=None, select=False, mode=0, Length_of_string=3, crt_in=False, choose_middle=False, dr_ht=5):
@@ -466,18 +414,18 @@ def showdensity_no_overlap(glass, regionradius, r_insert, rho, savefile=None, fi
                                                [x_low_tf, x_up_tf, y_low_tf, y_up_tf])
                             show_heterogeneity(ax0[1, 1], glass, entire_density_final, norm, time_final,
                                                [x_low_hf, x_up_hf, y_low_hf, y_up_hf])
-                            glass.set_ax(ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
+                            set_ax(ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
                                          y_low_ti, y_up_ti, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.set_ax(ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
+                            set_ax(ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
                                          y_low_tf, y_up_tf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.set_ax(ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
+                            set_ax(ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
                                          y_low_hi, y_up_hi, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.set_ax(ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
+                            set_ax(ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
                                          y_low_hf, y_up_hf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                            glass.plot_collections(ax0[0, 0], mask_ti, CalRegion_ti, time_ini, time_final, ts, ti, 'initial tail')
-                            glass.plot_collections(ax0[0, 1], mask_tf, CalRegion_tf, time_ini, time_final, ts, ti, 'final tail')
-                            glass.plot_collections(ax0[1, 0], mask_hi, CalRegion_hi, time_ini, time_final, ts, ti, 'initial head')
-                            glass.plot_collections(ax0[1, 1], mask_hf, CalRegion_hf, time_ini, time_final, ts, ti, 'final head')
+                            plot_collections(ax0[0, 0], mask_ti, CalRegion_ti, time_ini, time_final, ts, ti, 'initial tail')
+                            plot_collections(ax0[0, 1], mask_tf, CalRegion_tf, time_ini, time_final, ts, ti, 'final tail')
+                            plot_collections(ax0[1, 0], mask_hi, CalRegion_hi, time_ini, time_final, ts, ti, 'initial head')
+                            plot_collections(ax0[1, 1], mask_hf, CalRegion_hf, time_ini, time_final, ts, ti, 'final head')
                             ax4.vlines([time_ini, time_final], 0.75, 0.85, color=['r', 'b'], linestyles='--')
                             ax4.set_xlabel('Time')
                             ax4.set_ylabel('Area density in black circle region')
@@ -538,18 +486,18 @@ def showdensity_no_overlap(glass, regionradius, r_insert, rho, savefile=None, fi
                                                    [x_low_tf, x_up_tf, y_low_tf, y_up_tf])
                                 show_heterogeneity(ax0[1, 1], glass, entire_density_final, norm, time_final,
                                                    [x_low_hf, x_up_hf, y_low_hf, y_up_hf])
-                                glass.set_ax(ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
+                                set_ax(ax0[0, 0], x_partical_tail, y_particle_tail, regionradius, x_low_ti, x_up_ti,
                                              y_low_ti, y_up_ti, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                                glass.set_ax(ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
+                                set_ax(ax0[0, 1], x_quasivoid_tail, y_quasivoid_tail, regionradius, x_low_tf, x_up_tf,
                                              y_low_tf, y_up_tf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                                glass.set_ax(ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
+                                set_ax(ax0[1, 0], x_quasivoid_head, y_quasivoid_head, regionradius, x_low_hi, x_up_hi,
                                              y_low_hi, y_up_hi, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                                glass.set_ax(ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
+                                set_ax(ax0[1, 1], x_particle_head, y_particle_head, regionradius, x_low_hf, x_up_hf,
                                              y_low_hf, y_up_hf, x_quasivoid_tail, y_quasivoid_tail, x_quasivoid_head, y_quasivoid_head)
-                                glass.plot_collections(ax0[0, 0], mask_ti, CalRegion_ti, time_ini, time_final, ts, ti, 'initial tail')
-                                glass.plot_collections(ax0[0, 1], mask_tf, CalRegion_tf, time_ini, time_final, ts, ti, 'final tail')
-                                glass.plot_collections(ax0[1, 0], mask_hi, CalRegion_hi, time_ini, time_final, ts, ti, 'initial head')
-                                glass.plot_collections(ax0[1, 1], mask_hf, CalRegion_hf, time_ini, time_final, ts, ti, 'final head')
+                                plot_collections(ax0[0, 0], mask_ti, CalRegion_ti, time_ini, time_final, ts, ti, 'initial tail')
+                                plot_collections(ax0[0, 1], mask_tf, CalRegion_tf, time_ini, time_final, ts, ti, 'final tail')
+                                plot_collections(ax0[1, 0], mask_hi, CalRegion_hi, time_ini, time_final, ts, ti, 'initial head')
+                                plot_collections(ax0[1, 1], mask_hf, CalRegion_hf, time_ini, time_final, ts, ti, 'final head')
                                 ax4.vlines([time_ini, time_final], 0.75, 0.85, color=['r', 'b'], linestyles='--')
                                 ax4.set_xlabel('Time')
                                 ax4.set_ylabel('Area density in black circle region')
@@ -617,8 +565,8 @@ def showdensity_no_overlap(glass, regionradius, r_insert, rho, savefile=None, fi
                                 entire_density = Local_Density_Calculator(glass, regionradius, [sti])
                                 norm = mcolors.Normalize(vmin=rho - 0.1, vmax=rho + 0.1)
                                 show_heterogeneity(ax0, glass, entire_density, norm, sti, [x_low, x_up, y_low, y_up])
-                                glass.set_ax(ax0, x_particle_in_string, y_particle_in_string, regionradius, x_low, x_up, y_low, y_up)
-                                glass.plot_collections(ax0, mask, CalRegion_in, time_ini, time_final, ts, ti, 'In string')
+                                set_ax(ax0, x_particle_in_string, y_particle_in_string, regionradius, x_low, x_up, y_low, y_up)
+                                plot_collections(ax0, mask, CalRegion_in, time_ini, time_final, ts, ti, 'In string')
                                 ax4.vlines([time_ini, time_final], 0.75, 0.85, color=['r', 'b'], linestyles='--')
                                 ax4.set_xlabel('Time')
                                 ax4.set_ylabel('Area density in black circle region')

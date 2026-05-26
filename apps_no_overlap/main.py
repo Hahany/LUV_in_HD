@@ -42,7 +42,7 @@ def prepare_string_obj(obj_a_path, savepath, t1, nseg, rh, rs, Lst, dht):
 
 
 
-def trace_and_measure(distr_save_path, rho, nseg, t1, dt, Rc, rh, rs, Lst, dht, ri, savepath, savefig=False):
+def trace_and_measure(distr_save_path, rho, Rc, rh, Lst, dht, ri, savepath, savefile=None):
     with open(f'{savepath}/a_withstring.obj', 'rb') as f:
         a = pickle.load(f)
     print(f'string number is {len(a.connected_components)}')
@@ -57,8 +57,8 @@ def trace_and_measure(distr_save_path, rho, nseg, t1, dt, Rc, rh, rs, Lst, dht, 
 
     if len(a.connected_components) != 0:
         init, finalt, inih, finalh, time_select = a.showdensity_no_overlap(
-            Rc, ri, rho, savefile=None, figshow=True,
-            pid=None, select=False, mode=0, Length_of_string=2,
+            Rc, ri, rho, savefile=savefile, figshow=False,
+            pid=None, select=False, mode=0, Length_of_string=Lst,
             crt_in=False, choose_middle=False, dr_ht=dht)
 
         local_tail_ini.extend(init)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     start = time.time()
     rh = 0.8
     rs = 0.6
-    Lst = 0
+    Lst = 2
     ri = 0
     t1 = int(sys.argv[1])
     nseg = int(sys.argv[2])
@@ -108,17 +108,17 @@ if __name__ == '__main__':
 
     # 串行生成一次，所有进程共用
     prepare_string_obj(obj_a_path, save_path, t1, nseg, rh, rs, Lst, dht)
-    trace_and_measure(distr_save_path=save_path, rho=rho, nseg=nseg, t1=t1, dt=t1, Rc=2.0, rh=rh, rs=rs,
-                      Lst=Lst, dht=dht, ri=ri, savepath=save_path)
+    # trace_and_measure(distr_save_path=save_path, rho=rho, Rc=2.0, rh=rh, rs=rs,
+    #                   Lst=Lst, dht=dht, ri=ri, savepath=save_path)
+    
 
-    # Rc_list = [2.0 + i * 0.5 for i in range(37)]
-    # shared_kwargs = dict(rho=rho, nseg=nseg, t1=t1, dt=t1, rh=rh, rs=rs,
-    #                     Lst=Lst, dht=dht, ri=ri, savepath=save_path)
+    Rc_list = [2.0 + i * 0.5 for i in range(37)]
+    shared_kwargs = dict(rho=rho, rh=rh, Lst=Lst, dht=dht, ri=ri, savepath=save_path)
 
-    # # 控制并发数，避免内存爆炸
-    # N_JOBS = 8  # 根据内存调整
-    # with Pool(processes=N_JOBS) as pool:
-    #     pool.map(worker, [(Rc, shared_kwargs) for Rc in Rc_list])
+    # 控制并发数，避免内存爆炸
+    N_JOBS = 40  # 根据内存调整
+    with Pool(processes=N_JOBS) as pool:
+        pool.map(worker, [(Rc, shared_kwargs) for Rc in Rc_list])
 
-    # print_memory_usage()
-    # print(f'totally cost {time.time() - start:.1f}s')
+    print_memory_usage()
+    print(f'totally cost {time.time() - start:.1f}s')

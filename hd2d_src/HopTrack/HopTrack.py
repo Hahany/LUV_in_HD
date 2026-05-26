@@ -204,11 +204,3 @@ class Particles:
     def MSD(self, fr1=0, interval=10, COM=False, frinc=1.4, realdt=1, spf=1):
         return MSD(self, fr1=fr1, interval=interval, COM=COM, frinc=frinc, realdt=realdt,
                            spf=spf)
-
-
-    def set_ax(glass, ax, x1, y1, r1, x_low, x_up, y_low, y_up, x_qt=0, y_qt=0, x_qh=0, y_qh=0):
-        return set_ax(glass, ax, x1, y1, r1, x_low, x_up, y_low, y_up, x_qt=x_qt, y_qt=y_qt, x_qh=x_qh, y_qh=y_qh)
-    
-    def plot_collections(ax, mask, CalRegion, ts0, ts1, ts, ti, title):
-        return plot_collections(ax, mask, CalRegion, ts0, ts1, ts, ti, title)
-
