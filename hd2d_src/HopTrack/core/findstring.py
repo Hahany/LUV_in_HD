@@ -8,11 +8,16 @@ from hd2d_src.HopTrack.core.share.distPBC2D import distPBC2D
 #find string in glass
 
 def findstring(glass, HopThreshold, ConnectThreshold, microstring=True, ignoreLoop=False,
-               stlength=0, dr_ht=4, hop_whole=False, silent=True):
+               stlength=0, dr_ht=-1, hop_whole=False, silent=True, Dt=1, dt=1):
+    # Dt: 每隔多少帧检查一次，默认1（逐帧）
+    # dt: 判断hop的时间窗口长度，默认1（相邻帧）
     # deep first search, output string and level
     # hop_whole : check a particle is hopped or not at the total simulation time
     # stlength is the length of string
     # the distance between string head and tail
+    if dr_ht < 0:
+        dr_ht = 2
+        print('dr_ht is set to 2 for default value when tracing string, but will be soly set to 2Rc when calculating LUV......')
     class hop:
         def __init__(glass, id):
             glass.id = id
@@ -37,12 +42,26 @@ def findstring(glass, HopThreshold, ConnectThreshold, microstring=True, ignoreLo
 
     if hop_whole:
         T, N, _ = np.shape(glass.frames)
-        DispEachFrame = np.linalg.norm(glass.frames[1:, :, 2:4] - glass.frames[0, :, 2:4],
-                                       axis=2)  # only consider the hopping from the first frame, without consideration of 2, 3,4...
+        DispEachFrame = np.linalg.norm(glass.frames[dt:, :, 2:4] - glass.frames[0, :, 2:4],
+                                       axis=2)
         HopList = np.where(DispEachFrame >= HopThreshold)
     else:
-        DispEachFrame = np.linalg.norm(glass.frames[:-1, :, 2:4] - glass.frames[1:, :, 2:4], axis=2)
-        HopList = np.where(DispEachFrame >= HopThreshold)
+        T, N, _ = np.shape(glass.frames)
+        # 只在 0, Dt, 2Dt, ... 这些帧上计算，每次跨越 dt 帧的位移
+        selected_frames = np.arange(0, T - dt, Dt)
+
+        hop_times = []
+        hop_particles = []
+        for t in selected_frames:
+            disp = np.linalg.norm(
+                glass.frames[t, :, 2:4] - glass.frames[t + dt, :, 2:4], axis=1)
+            particles = np.where(disp >= HopThreshold)[0]
+            hop_times.extend([t] * len(particles))
+            hop_particles.extend(particles.tolist())
+        HopList = (np.array(hop_times), np.array(hop_particles))
+
+
+
     if len(HopList[0]) == 0:
         print('No hops found')
         return 0
@@ -54,7 +73,7 @@ def findstring(glass, HopThreshold, ConnectThreshold, microstring=True, ignoreLo
     i_t = 0
     while i_t < T:
         t1_frame = TimeList[i_t]
-        t2_frame = t1_frame + 1
+        t2_frame = t1_frame + dt  # 原来是 t1_frame + 1，现在改为 t1_frame + dt
         print(f'processing frame {t2_frame}', end='\r')
         string = []
         particlelist = HopList[1][np.where(HopList[0] == TimeList[i_t])]
@@ -161,7 +180,7 @@ def findstring(glass, HopThreshold, ConnectThreshold, microstring=True, ignoreLo
     for iframe in range(len(strings)):
         string_startend = []
         for sub_string in range(len(strings[iframe])):
-            string_startend.append([TimeList[iframe], TimeList[iframe] + 1])
+            string_startend.append([TimeList[iframe], TimeList[iframe] + dt])  # 原来是 +1
         startandendtime.append(string_startend)
     # startandendtime_out = startandendtime.copy()
     # ####find connection between frames

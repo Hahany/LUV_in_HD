@@ -46,27 +46,27 @@ def get_deltaV(dirData, fix_rho, prefix):
             ld = np.loadtxt(tail_file_path)
             all = np.loadtxt(all_file_path)
             if len(np.shape(ld)) > 1:
-                local_tail_ini = ld[:, 0]
-                local_head_final = ld[:, 3]
+                local_tail_final = ld[:, 1]
+                local_head_ini = ld[:, 2]
 
-                tail = []
-                tail.extend(local_tail_ini)
-                tail.extend(local_head_final)
+                head = []
+                head.extend(local_tail_final)
+                head.extend(local_head_ini)
 
-                ave_tail = np.mean(tail)
+                ave_head = np.mean(head)
                 if fix_rho:
                     ave_all = 0.8050357324284557
                 else:
                     ave_all = np.mean(all)
-                print(ave_tail)
+                print(ave_head)
                 print(ave_all)
-                deltaV = (ave_all - ave_tail) * (Rc * 2) ** 2
+                deltaV = (ave_all - ave_head) * (Rc * 2) ** 2
                 data_save.append(deltaV)
                 data_all.append(ave_all)
                 R_list.append(Rc)
                 import random
                 v_all = (1-np.array(all)) * (Rc * 2) ** 2
-                v_tail = (1-np.array(tail))* (Rc * 2) ** 2
+                v_head = (1-np.array(head))* (Rc * 2) ** 2
                 #-----------------------(考虑协方差)-------------------------
                 # if len(v_all) > len(v_tail):
                 #     rand_A = random.sample(v_all.tolist(), len(v_tail))
@@ -82,8 +82,8 @@ def get_deltaV(dirData, fix_rho, prefix):
                 #     std2 = np.sqrt(std_T ** 2 + std_A ** 2 - 2 * cov_AT[0, 1]) / np.sqrt(len(v_all))
                 # -----------------------(近似独立不考虑协方差)-------------------------
                 std_A = np.std(v_all, ddof=1)
-                std_T = np.std(v_tail, ddof=1)
-                std2 = np.sqrt(std_A ** 2 / len(v_all) + std_T ** 2 / len(v_tail))
+                std_T = np.std(v_head, ddof=1)
+                std2 = np.sqrt(std_A ** 2 / len(v_all) + std_T ** 2 / len(v_head))
                 std_out.append(np.sqrt(std_A ** 2 + std_T ** 2))
                 error.append(std2)
     data = np.array([R_list, data_save, error, data_all, std_out])
@@ -178,7 +178,7 @@ def DeltaV_vs_Rc_2D(file_dict, app_path, fix_rho=False, xa=0, xb=100):
         color  = colors[i % len(colors)]
         marker = markers[i % len(markers)]
 
-        data = np.loadtxt(f'{app_path}/deltaV_{key}.csv')
+        data = np.loadtxt(f'{app_path}/deltaVah_{key}.csv')
         data = np.array(data)
 
         # fit
@@ -221,12 +221,12 @@ def DeltaV_vs_Rc_2D(file_dict, app_path, fix_rho=False, xa=0, xb=100):
         )
 
     ax.set_xlabel(r'$R$', fontsize=20)
-    ax.set_ylabel(r'$\Delta \bar{{V}}_\mathrm{AT}/v$', fontsize=20)
+    ax.set_ylabel(r'$\Delta \bar{{V}}_\mathrm{AH}/v$', fontsize=20)
     ax.grid(False)
-    ax.legend(loc='lower right', fontsize=14)
-    ax.set_ylim([0, 1.0])
-    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
-    ax.set_xlim([1, 19])
+    ax.legend(loc='upper left', fontsize=14)
+    # ax.set_ylim([0, 1.0])
+    # ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    # ax.set_xlim([1, 10])
     fig.tight_layout()
     ax.minorticks_on()
     ax.tick_params(which='both',  width=2)
@@ -301,9 +301,9 @@ def plot_3sets(rc, rs, rho, nseg, obj_path, scale=True, show=False, bins=[50, 20
             flag = "ld"
 
 
-        tail = []
-        tail.extend(local_tail_ini)
-        tail.extend(local_head_final)
+        head = []
+        head.extend(local_tail_final)
+        head.extend(local_head_ini)
 
 
         # std2 = np.std(np.array(tail)-np.array(head))/np.sqrt(len(head))
@@ -323,13 +323,13 @@ def plot_3sets(rc, rs, rho, nseg, obj_path, scale=True, show=False, bins=[50, 20
         #     std2 = np.sqrt(std_T**2+std_A**2-2*cov_AT[0,1])/np.sqrt(len(entire_density))
         #----------------------------------(近似独立，不考虑协方差)-----------------------------
         std_A = np.std(entire_density, ddof=1)
-        std_T = np.std(tail, ddof=1)
-        std2 = np.sqrt(std_A ** 2 / len(entire_density) + std_T ** 2 / len(tail))
+        std_T = np.std(head, ddof=1)
+        std2 = np.sqrt(std_A ** 2 / len(entire_density) + std_T ** 2 / len(head))
 
 
 
         colors = ['k', 'g', 'r', 'm']
-        data_in = [entire_density, ld_hopped, tail]
+        data_in = [entire_density, ld_hopped, head]
         X1 = []
         X2 = []
         for i in range(3):
@@ -339,9 +339,9 @@ def plot_3sets(rc, rs, rho, nseg, obj_path, scale=True, show=False, bins=[50, 20
             x2 = np.mean(data_in[i]) + s
             X2.append(x2)
         n, ave, mu, std, height = plot_norm_distribution(ax,
-                                                     [entire_density, ld_hopped,  tail],
+                                                     [entire_density, ld_hopped,  head],
                                                              bins,
-                                                     label=[r'$V_{{A}}$(All)',  r'$V_{{J}}$(Jumped)',  r'$V_{{T}}$(Tails)'],
+                                                     label=[r'$V_{{A}}$(All)',  r'$V_{{J}}$(Jumped)',  r'$V_{{H}}$(Head)'],
                                                      color=colors, x1=X1, x2=X2, lt=['-', '--', '-'], alpha_list=[1, 0.45, 1], lw=4, ms=10)
         print(f'mu is {mu}')
         print(f'std is {std}')
@@ -394,23 +394,22 @@ def plot_3sets(rc, rs, rho, nseg, obj_path, scale=True, show=False, bins=[50, 20
 
 
 if __name__ == '__main__':
-    app_path = '/home/xiaochu/Public/LUV_in_HD/apps/LUV_rho_R'
+    app_path = '/home/xiaochu/Public/LUV_in_HD/apps/LUV_rho_R_Vah'
     file_dict = {
-            '0780': '/home/xiaochu/Public/LUV_in_HD/data/output/0780/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_100',
-            # '0785': '/home/xiaochu/Public/LUV_in_HD/data/output/0785/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_t0_0_t1_300_nseg_300_Dt10_dt3',
-            '0785': '/home/xiaochu/Public/LUV_in_HD/data/output/0785/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_t0_0_t1_100_nseg_100_Dt3_dt3',
-            '0790': '/home/xiaochu/Public/LUV_in_HD/data/output/0790/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_t0_0_t1_1000_nseg_1000_Dt5_dt5',
-            '0795': '/home/xiaochu/Public/LUV_in_HD/data/output/0795/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_100',
-            '0800': '/home/xiaochu/Public/LUV_in_HD/data/output/0800/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_t0_0_t1_10000_nseg_10000_Dt20_dt1',
-            '0805': '/home/xiaochu/Public/LUV_in_HD/data/output/0805/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_1000'
+            '0780': '/home/xiaochu/Public/LUV_in_HD/data/output/0780/overlap_dht_-1/rh_0.8_rs_0.6_Lst_2_Len-1.00_nseg_1000_Dt1_dt1',
+            '0785': '/home/xiaochu/Public/LUV_in_HD/data/output/0785/overlap_dht_-1/rh_0.8_rs_0.6_Lst_2_Len-1.00_nseg_1000_Dt1_dt1',
+            '0790': '/home/xiaochu/Public/LUV_in_HD/data/output/0790/overlap_dht_-1/rh_0.8_rs_0.6_Lst_2_Len-1.00_nseg_10000_Dt1_dt1',
+            '0795': '/home/xiaochu/Public/LUV_in_HD/data/output/0795/overlap_dht_-1/rh_0.8_rs_0.6_Lst_2_Len-1.00_nseg_10000_Dt1_dt1',
+            '0800': '/home/xiaochu/Public/LUV_in_HD/data/output/0800/overlap_dht_-1/rh_0.8_rs_0.6_Lst_2_Len-1.00_nseg_10000_Dt1_dt1',
+            '0805': '/home/xiaochu/Public/LUV_in_HD/data/output/0805/overlap_dht_-1/rh_0.8_rs_0.6_Lst_2_Len-1.00_nseg_1000_Dt1_dt1'
             }
     for key, value in file_dict.items():
         data_path = value
         fig_name = os.path.basename(value)
-        # plot_3sets(rc=15.00, rs=0.6, rho=float(int(key)/1000), nseg=1000, obj_path=f'{value}/Rc_15.00', scale=True, show=False, fig_name=fig_name)
+        plot_3sets(rc=6.00, rs=0.6, rho=float(int(key)/1000), nseg=1000, obj_path=f'{value}/Rc_6.00', scale=True, show=False, fig_name=fig_name)
 
         deltaV = get_deltaV(data_path, fix_rho=False, prefix='Rc_')
-        np.savetxt(f'{app_path}/deltaV_{key}.csv', deltaV)
-    DeltaV_vs_Rc_2D(file_dict, app_path=app_path, fix_rho=False, xa=0, xb=34)
+        np.savetxt(f'{app_path}/deltaVah_{key}.csv', deltaV)
+    DeltaV_vs_Rc_2D(file_dict, app_path=app_path, fix_rho=False, xa=0, xb=10)
 
         

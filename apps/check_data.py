@@ -14,7 +14,7 @@ import pickle
 import resource
 from hd2d_src.HopTrack.utils import *
 
-with open('/home/xiaochu/Public/LUV_in_HD/data/input/0785/a_AVE_normalized.obj', "rb") as f:
+with open('/home/xiaochu/Public/LUV_in_HD/data/output/0780/no_overlap/rh_0.8_rs_0.6_Lst_2_Len2.00_nseg_100/a_withstring.obj', "rb") as f:
 # with open('/home/xiaochu/Public/LUV_in_HD/data/input/0805/a_cut_69500.obj', "rb") as f:
     custom_unpickler = CustomUnpickler(f)
     a = custom_unpickler.load()

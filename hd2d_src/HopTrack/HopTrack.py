@@ -147,10 +147,11 @@ class Particles:
                         overlap=overlap, blacktraj=blacktraj, crange=crange)
 
     def findstring(self, HopThreshold, ConnectThreshold, microstring=True, ignoreLoop=False,
-                   stlength=0, dr_ht=4, hop_whole=False, silent=True):
-        return findstring(self, HopThreshold=HopThreshold, ConnectThreshold=ConnectThreshold, microstring=microstring,
-                                  ignoreLoop=ignoreLoop,
-                                  stlength=stlength, dr_ht=dr_ht, hop_whole=hop_whole, silent=silent)
+               stlength=0, dr_ht=4, hop_whole=False, silent=True, Dt=1, dt=1):
+        return findstring(self, HopThreshold=HopThreshold, ConnectThreshold=ConnectThreshold,
+                      microstring=microstring, ignoreLoop=ignoreLoop,
+                      stlength=stlength, dr_ht=dr_ht, hop_whole=hop_whole,
+                      silent=silent, Dt=Dt, dt=dt)
 
     def showstring(self, ax, lw=0.8, nodot=False, findquasivoid=False, size=5, showid=False,
                    select=False, sid=0, show_length_distribusion=False, showtraj=True,

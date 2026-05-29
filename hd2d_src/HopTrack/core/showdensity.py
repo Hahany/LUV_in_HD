@@ -16,6 +16,10 @@ from hd2d_src.HopTrack.core.Local_Density_Calculator import Local_Density_Calcul
 
 def showdensity(glass, regionradius, r_insert, rho, savefile=None, figshow=False,
                 pid=None, select=False, mode=0, Length_of_string=3, crt_in=False, choose_middle=False, dr_ht=5):
+    
+    if dr_ht < 0:
+        dr_ht = 2*regionradius
+        print('dr_ht is set to 2*regionradius')
 
     density_tail_ini = []
     density_head_ini = []

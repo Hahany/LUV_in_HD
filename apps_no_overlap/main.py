@@ -10,41 +10,46 @@ from hd2d_src.HopTrack.core.Local_Density_Calculator import Local_Density_Calcul
 import time
 import pickle
 import resource
-from hd2d_src.HopTrack.utils import  CustomUnpickler
+from hd2d_src.HopTrack.utils import CustomUnpickler
 from multiprocessing import Pool
 import fcntl
 from hd2d_src.HopTrack.core.share.Deduplicate import *
+import copy
 
-def prepare_string_obj(obj_a_path, savepath, t1, nseg, rh, rs, Lst, dht):
+
+
+# 全局变量存共享对象
+_shared_a = None
+
+def prepare_string_obj(obj_a_path, savepath, t0, t1, nseg, rh, rs, Lst, dht, Dt=1, dt=1):
     os.makedirs(savepath, exist_ok=True)
-    lock_path = f'{savepath}/a_withstring.lock'
-    obj_path = f'{savepath}/a_withstring.obj'
+    obj_path = f'{savepath}/a_withstring_Dt{Dt}_dt{dt}.obj'
+    lock_path = f'{savepath}/a_withstring_Dt{Dt}_dt{dt}.lock'
     with open(lock_path, 'w') as lock_file:
         fcntl.flock(lock_file, fcntl.LOCK_EX)
         try:
             if not os.path.exists(obj_path):
                 with open(obj_a_path, "rb") as f:
                     a = CustomUnpickler(f).load()
-                a.setduration(begin=0, finish=t1)
+                a.setduration(begin=t0, finish=t1)
                 a.chooseWithoutCoarsening(nseg)
                 a.unwrap_vec()
                 a.frames0 = []
                 a.findstring(HopThreshold=rh, ConnectThreshold=rs, microstring=True,
-                             ignoreLoop=True, stlength=Lst, dr_ht=dht, hop_whole=False)
-                Deduplicate(a)   #去掉重复
+                             ignoreLoop=True, stlength=Lst, dr_ht=dht, hop_whole=False,
+                             Dt=Dt, dt=dt)
+                Deduplicate(a)
                 deepDeduplicate(a)
                 with open(obj_path, 'wb') as f:
                     pickle.dump(a, f)
-                print('a_withstring.obj generated')
+                print(f'a_withstring_Dt{Dt}_dt{dt}.obj generated')
         finally:
             fcntl.flock(lock_file, fcntl.LOCK_UN)
-#trace string
 
 
-
-def trace_and_measure(distr_save_path, rho, Rc, rh, Lst, dht, ri, savepath, savefile=None):
-    with open(f'{savepath}/a_withstring.obj', 'rb') as f:
-        a = pickle.load(f)
+def trace_and_measure(distr_save_path, rho, Rc, rh, Lst, dht, ri, savepath, Dt=1, dt=1, savefile=None):
+    global _shared_a        # 新增
+    a = _shared_a           # 新增
     print(f'string number is {len(a.connected_components)}')
     print(f'box size is {a.L}')
     print(f'minimal particle size is {min(a.radii)}')
@@ -74,16 +79,33 @@ def trace_and_measure(distr_save_path, rho, Rc, rh, Lst, dht, ri, savepath, save
     np.savetxt(f'{distr_save_path}/entire_density.txt', entire_density, delimiter='\t', fmt='%.6f')
     np.savetxt(f"{distr_save_path}/local_density.txt", local_density.T, delimiter='\t', fmt='%.6f')
 
-    a.chooseWithoutCoarsening(2)
-    ld_hp = ld_hopped_no_overlap(a, 2, Rc, rh)
+
+
+    a_local = copy.copy(_shared_a)                    # 浅拷贝对象
+    a_local.frames = _shared_a.frames[[0, -1], :, :]  # 单独复制 frames 切片
+    a_local.tmax = 2
+
+    ld_hp = ld_hopped_no_overlap(a_local, 2, Rc, rh)
     ld_hp = np.array(ld_hp)
     np.savetxt(f"{distr_save_path}/ld_hopped.txt", ld_hp.T, delimiter='\t', fmt='%.6f')
 
+
+
+def init_worker(obj_path):
+    global _shared_a
+    with open(obj_path, 'rb') as f:
+        _shared_a = pickle.load(f)
+    print(f"Worker {os.getpid()} loaded object")
+
 def worker(args):
+    global _shared_a
     Rc, kwargs = args
     distr_save_path = f"{kwargs['savepath']}/Rc_{Rc:.02f}"
     os.makedirs(distr_save_path, exist_ok=True)
+    # 直接用 _shared_a，不再重复 load
     trace_and_measure(distr_save_path=distr_save_path, Rc=Rc, **kwargs)
+
+
 def print_memory_usage():
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if os.name == 'posix':
@@ -98,26 +120,25 @@ if __name__ == '__main__':
     rs = 0.6
     Lst = 2
     ri = 0
-    t1 = int(sys.argv[1])
-    nseg = int(sys.argv[2])
-    rho = float(sys.argv[3])
+    t0 = int(sys.argv[1])
+    t1 = int(sys.argv[2])
+    nseg = int(sys.argv[3])
+    rho = float(sys.argv[4])
+    Dt = int(sys.argv[5])
+    dt = int(sys.argv[6])
     dht = 2
     s_rho = int(1000 * rho)
     obj_a_path = f'/home/xiaochu/Public/LUV_in_HD/data/input/{s_rho:04d}/a_AVE_normalized.obj'
-    save_path = f"/home/xiaochu/Public/LUV_in_HD/data/output/{s_rho:04d}/no_overlap/rh_{rh:.01f}_rs_{rs:.01f}_Lst_{Lst}_Len{dht:.02f}_nseg_{nseg}"
+    save_path = f"/home/xiaochu/Public/LUV_in_HD/data/output/{s_rho:04d}/no_overlap/rh_{rh:.01f}_rs_{rs:.01f}_Lst_{Lst}_Len{dht:.02f}_t0_{t0}_t1_{t1}_nseg_{nseg}_Dt{Dt}_dt{dt}"
 
-    # 串行生成一次，所有进程共用
-    prepare_string_obj(obj_a_path, save_path, t1, nseg, rh, rs, Lst, dht)
-    # trace_and_measure(distr_save_path=save_path, rho=rho, Rc=2.0, rh=rh, rs=rs,
-    #                   Lst=Lst, dht=dht, ri=ri, savepath=save_path)
-    
-
+    prepare_string_obj(obj_a_path, save_path, t0, t1, nseg, rh, rs, Lst, dht, Dt=Dt, dt=dt)
+    obj_path = f'{save_path}/a_withstring_Dt{Dt}_dt{dt}.obj'  # 新增
     Rc_list = [2.0 + i * 0.5 for i in range(37)]
-    shared_kwargs = dict(rho=rho, rh=rh, Lst=Lst, dht=dht, ri=ri, savepath=save_path)
+    shared_kwargs = dict(rho=rho, rh=rh, Lst=Lst, dht=dht, ri=ri,
+                         savepath=save_path, Dt=Dt, dt=dt)
 
-    # 控制并发数，避免内存爆炸
-    N_JOBS = 40  # 根据内存调整
-    with Pool(processes=N_JOBS) as pool:
+    N_JOBS = int(sys.argv[7])
+    with Pool(processes=N_JOBS, initializer=init_worker, initargs=(obj_path,)) as pool:
         pool.map(worker, [(Rc, shared_kwargs) for Rc in Rc_list])
 
     print_memory_usage()
